@@ -11,6 +11,8 @@ ENV R_VERSION=${R_VERSION:-4.1.1} \
     LC_ALL=en_US.UTF-8 \
     LANG=en_US.UTF-8 
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+# ENV SQLITE3_CFLAGS=/usr/local/lib
+# ENV SQLITE3_LIBS=/usr/loca/lib 
 
 RUN yum -y groupinstall "Development Tools"
 
@@ -24,7 +26,6 @@ RUN yum install -y proj-devel
 RUN yum install -y proj-epsg
 
 RUN yum install -y cpp 
-RUN yum install -y sqlite-devel 
 RUN yum install -y libtiff-devel 
 RUN yum install -y cmake3
 RUN yum install -y libcurl-devel
