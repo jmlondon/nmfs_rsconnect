@@ -10,21 +10,44 @@ ENV R_VERSION=${R_VERSION:-4.1.1} \
     CRAN=${CRAN:-https://cran.rstudio.com} \ 
     LC_ALL=en_US.UTF-8 \
     LANG=en_US.UTF-8 
-ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
-# ENV SQLITE3_CFLAGS=/usr/local/lib
-# ENV SQLITE3_LIBS=/usr/loca/lib 
 
+# PKG_CONFIG_PATH is needed for successful sqlite build
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+
+# Dev Tools installs many of the toolkits needed for building from source
 RUN yum -y groupinstall "Development Tools"
+
+# Development Tools for Centos7 installs gcc 4.8; we need newer
+# The easy option is to install devtoolset-10 which gets us access
+# to gcc 10.
+RUN yum install -y centos-release-scl
+RUN yum install -y devtoolset-10
+
+# Enable devtoolset-10 from our devtools-enable.sh
+# and set it as our entrypoint
+COPY devtools-enable.sh /usr/bin/devtools-enable.sh
+RUN chmod +x /usr/bin/devtools-enable.sh
+ENTRYPOINT [ "/usr/bin/devtools-enable.sh" ]
+
+# For RStudio::Connect, we can set up a Program Supervisor script to 
+# enable devtools-10 for package compilation server wide.
+# see https://support.rstudio.com/hc/en-us/articles/360006142673-RStudio-Connect-with-devtoolset-enabled
+
+# If enabling devtools-10 is not an option, then will need to install gcc 10 from source
+# RUN curl -L -O http://ftp.mirrorservice.org/sites/sourceware.org/pub/gcc/releases/gcc-10.3.0/gcc-10.3.0.tar.gz \
+#   && tar -xvf gcc-10.3.0.tar.gz \
+#   && cd gcc-10.3.0 \
+#   && ./contrib/download_prerequisites \
+#   && ./configure --disable-multilib --enable-languages=c,c++,fortran \
+#   && make -j 4\
+#   && make install
+
+# will also need to set
+# export LD_LIBRARY_PATH=/usr/local/lib:/usr/lib:/usr/local/lib64:/usr/lib64
 
 RUN yum install -y openssl-devel
 RUN yum install -y epel-release
 RUN yum install -y udunits2-devel
-RUN yum install -y gdal-devel
-RUN yum install -y gdal
-RUN yum install -y geos-devel
-RUN yum install -y proj-devel
-RUN yum install -y proj-epsg
-
 RUN yum install -y cpp 
 RUN yum install -y libtiff-devel 
 RUN yum install -y cmake3
@@ -56,7 +79,7 @@ RUN curl -L -O https://github.com/OSGeo/gdal/releases/download/v3.3.2/gdal-3.3.2
   && tar -zxvf gdal-3.3.2.tar.gz \
   && cd gdal-3.3.2 \
   && ./configure --with-proj=/usr/local --with-sqlite3=/usr/local \
-  && make \
+  && make -j 4\
   && make install
 
 RUN curl -O https://cdn.rstudio.com/r/centos-7/pkgs/R-${R_VERSION}-1-1.x86_64.rpm \
